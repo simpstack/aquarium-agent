@@ -599,7 +599,7 @@ Write 3–5 warm sentences with 2–3 emojis. If it's a fasting day briefly ment
   }
 
   try{
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${ST.apiKey}`,{
+    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${ST.apiKey}`,{
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
