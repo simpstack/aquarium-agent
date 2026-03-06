@@ -221,22 +221,23 @@ select{outline:none;font-family:Georgia,serif;}
   <!-- CONNECT -->
   <div id="pane-connect" class="tab-content" style="display:none">
 
-    <!-- Gemini API Key -->
+    <!-- Groq API Key -->
     <div class="con-card" style="border:1px solid rgba(79,195,247,.22);">
       <div class="con-head">
         <div class="con-icon" style="background:rgba(79,195,247,.12);">🔑</div>
-        <div><div class="con-title">Google Gemini API Key</div><div class="con-sub">Free — no credit card required</div></div>
+        <div><div class="con-title">Groq API Key</div><div class="con-sub">100% free — works in the UK — no card needed</div></div>
       </div>
       <div class="how-box">
-        <strong>How to get your free Gemini API key:</strong><br>
-        1. Go to <strong>aistudio.google.com</strong><br>
-        2. Sign in with your Google account<br>
-        3. Click <strong>Get API Key</strong> → <strong>Create API key</strong><br>
-        4. Copy the key and paste it below<br><br>
-        <strong>Free tier includes:</strong> 15 requests/minute, 1,500 requests/day — more than enough for this app. No card needed.
+        <strong>How to get your free Groq API key:</strong><br>
+        1. Go to <strong>console.groq.com</strong><br>
+        2. Sign up with Google or email<br>
+        3. Click <strong>API Keys</strong> in the left sidebar<br>
+        4. Click <strong>Create API Key</strong> → name it "Aquarium Agent"<br>
+        5. Copy the key and paste it below<br><br>
+        <strong>Free tier:</strong> 30 requests/minute, 14,400/day. No card, no region restrictions.
       </div>
-      <label class="field-label">GEMINI API KEY</label>
-      <input type="text" class="field-input" id="api-key-input" placeholder="AIza..." oninput="saveApiKey(this.value)"/>
+      <label class="field-label">GROQ API KEY</label>
+      <input type="text" class="field-input" id="api-key-input" placeholder="gsk_..." oninput="saveApiKey(this.value)"/>
       <div id="key-status" style="font-size:12px;color:#5a9db8;margin-top:-8px;margin-bottom:4px;"></div>
     </div>
 
@@ -593,20 +594,20 @@ Alerts: ${alerts.join("; ")||"No urgent alerts today"}
 Write 3–5 warm sentences with 2–3 emojis. If it's a fasting day briefly mention why it benefits the fish. Gently flag any overdue tasks. End with a quick aquarium care tip.`;
 
   if(!ST.apiKey){
-    document.getElementById("remind-box").innerHTML=`<div style="width:100%"><div class="remind-title">Gemini API Key Required</div><p style="color:#8ab8cc;font-size:13px;line-height:1.8">Add your free Gemini API key in the <strong style="color:#4fc3f7">🔗 Connect</strong> tab.<br><br>Get one free at <strong style="color:#4fc3f7">aistudio.google.com</strong> — no card needed.</p></div>`;
+    document.getElementById("remind-box").innerHTML=`<div style="width:100%"><div class="remind-title">Groq API Key Required</div><p style="color:#8ab8cc;font-size:13px;line-height:1.8">Add your free Groq API key in the <strong style="color:#4fc3f7">🔗 Connect</strong> tab.<br><br>Get one free at <strong style="color:#4fc3f7">console.groq.com</strong> — no card, works in the UK.</p></div>`;
     document.getElementById("regen-btn").textContent="🔄 Regenerate";
     return;
   }
 
   try{
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${ST.apiKey}`,{
+    const res=await fetch("https://api.groq.com/openai/v1/chat/completions",{
       method:"POST",
-      headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({contents:[{parts:[{text:prompt}]}]})
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+ST.apiKey},
+      body:JSON.stringify({model:"llama3-8b-8192",messages:[{role:"user",content:prompt}],max_tokens:500})
     });
     const data=await res.json();
     if(data.error){reminderText="Error: "+data.error.message;}
-    else{reminderText=data.candidates?.[0]?.content?.parts?.[0]?.text||"Could not generate.";}
+    else{reminderText=data.choices?.[0]?.message?.content||"Could not generate.";}
   }catch(e){reminderText="Network error — please try again.";}
 
   document.getElementById("remind-box").innerHTML=`<div style="width:100%"><div class="remind-title">Today's Reminder — ${TODAY}</div><div class="remind-text">${reminderText.replace(/\n/g,"<br>")}</div></div>`;
