@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>🐠 Aquarium Agent</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{min-height:100vh;background:#010c15;font-family:Georgia,'Book Antiqua',serif;color:#dff2fb;overflow-x:hidden;}
+  .bg{position:fixed;inset:0;background:radial-gradient(ellipse at 30% 90%,#052238 0%,#010c15 65%);z-index:0;pointer-events:none;}
+  .wrap{position:relative;z-index:2;max-width:700px;margin:0 auto;padding:22px 14px;}
+
+  /* bubbles */
+  .bubble{position:fixed;bottom:-20px;border-radius:50%;border:1px solid rgba(120,220,255,.18);background:rgba(120,220,255,.03);animation:rise linear infinite;z-index:1;pointer-events:none;}
+  @keyframes rise{0%{transform:translateY(0);opacity:.4}100%{transform:translateY(-110vh);opacity:0}}
+  @keyframes swim{0%,100%{transform:translateX(0) scaleX(1)}49%{transform:translateX(45px) scaleX(1)}50%{transform:translateX(45px) scaleX(-1)}99%{transform:translateX(0) scaleX(-1)}}
+  @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes toastIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes modalIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+  @keyframes glow{0%,100%{box-shadow:0 0 10px rgba(79,195,247,.2)}50%{box-shadow:0 0 22px rgba(79,195,247,.45)}}
+
+  /* header */
+  .header{text-align:center;margin-bottom:18px;}
+  .fish-swim{font-size:34px;animation:swim 9s infinite linear;display:inline-block;}
+  .fish-swim2{font-size:34px;animation:swim 11s 2s infinite linear;display:inline-block;}
+  h1{font-size:21px;font-weight:normal;letter-spacing:4px;color:#4fc3f7;margin:6px 0 3px;text-shadow:0 0 20px rgba(79,195,247,.45);}
+  .date-label{color:#5a9db8;font-size:12px;letter-spacing:1px;}
+
+  /* tabs */
+  .tabs{display:flex;gap:5px;margin-bottom:14px;background:rgba(4,28,48,.95);border-radius:12px;padding:4px;border:1px solid rgba(79,195,247,.1);}
+  .tab-btn{flex:1;padding:7px 3px;border-radius:9px;border:none;cursor:pointer;font-size:11px;background:transparent;color:#5a9db8;letter-spacing:.3px;font-family:Georgia,serif;transition:all .2s;}
+  .tab-btn.active{background:rgba(79,195,247,.16);color:#4fc3f7;}
+  .tab-btn:hover{filter:brightness(1.2);}
+
+  /* cards */
+  .card{background:rgba(4,28,48,.85);border:1px solid rgba(79,195,247,.15);border-radius:14px;padding:16px;margin-bottom:12px;}
+  .card-title{font-size:10px;letter-spacing:2.5px;color:#4fc3f7;margin-bottom:12px;text-transform:uppercase;}
+
+  /* tank selector */
+  .tank-sel{display:flex;gap:8px;margin-bottom:12px;}
+  .tank-btn{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(79,195,247,.1);background:rgba(4,28,48,.7);color:#5a9db8;cursor:pointer;font-size:13px;font-family:Georgia,serif;transition:all .2s;}
+  .tank-btn.active{border-color:rgba(79,195,247,.38);background:rgba(79,195,247,.12);color:#4fc3f7;}
+  .tank-btn:hover{filter:brightness(1.15);}
+
+  /* feed rows */
+  .feed-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(79,195,247,.06);}
+  .feed-session{min-width:65px;font-size:11px;color:#5a9db8;letter-spacing:.5px;text-transform:capitalize;}
+  .feed-val{flex:1;font-size:13px;color:#dff2fb;}
+  .feed-val.fast{color:#3d6a80;font-style:italic;}
+  .feed-val.done{color:#5a9db8;text-decoration:line-through;}
+  .done-badge{font-size:11px;color:#81d48b;background:rgba(129,212,139,.1);padding:3px 10px;border-radius:20px;white-space:nowrap;}
+  .mark-btn{font-size:11px;color:#4fc3f7;background:rgba(79,195,247,.08);border:1px solid rgba(79,195,247,.25);padding:3px 10px;border-radius:20px;cursor:pointer;font-family:Georgia,serif;white-space:nowrap;}
+  .mark-btn:hover{filter:brightness(1.2);}
+
+  /* status cards */
+  .status-card{border-radius:10px;padding:12px 14px;margin-bottom:8px;}
+  .status-card .sc-top{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .sc-info{flex:1;}
+  .sc-name{font-size:13px;color:#dff2fb;}
+  .sc-sub{font-size:11px;color:#5a9db8;margin-top:2px;}
+  .sc-label{font-size:11px;font-weight:bold;white-space:nowrap;}
+  .sc-btns{display:flex;gap:7px;}
+  .btn-done{flex:2;padding:7px;border-radius:8px;border:1px solid rgba(129,212,139,.35);background:rgba(129,212,139,.08);color:#81d48b;cursor:pointer;font-size:12px;font-family:Georgia,serif;}
+  .btn-reschedule{flex:1;padding:7px;border-radius:8px;background:transparent;cursor:pointer;font-size:12px;font-family:Georgia,serif;}
+  .btn-done:hover,.btn-reschedule:hover{filter:brightness(1.2);}
+
+  /* schedule table */
+  .sched-grid{background:rgba(4,28,48,.85);border:1px solid rgba(79,195,247,.13);border-radius:14px;overflow:hidden;margin-bottom:12px;}
+  .sched-head{display:grid;grid-template-columns:80px 1fr 1fr;background:rgba(79,195,247,.07);padding:9px 14px;border-bottom:1px solid rgba(79,195,247,.1);}
+  .sched-head span{font-size:10px;color:#4fc3f7;letter-spacing:2px;}
+  .sched-row{display:grid;grid-template-columns:80px 1fr 1fr;padding:10px 14px;border-bottom:1px solid rgba(79,195,247,.05);}
+  .sched-row.today{background:rgba(79,195,247,.07);}
+  .sched-day{font-size:12px;color:#5a9db8;}
+  .sched-row.today .sched-day{color:#4fc3f7;font-weight:bold;}
+  .sched-val{font-size:11px;color:#c5e8f7;}
+  .sched-val.fast{color:#3d6a80;font-style:italic;}
+
+  /* reminder */
+  .remind-box{background:rgba(4,28,48,.88);border:1px solid rgba(79,195,247,.16);border-radius:14px;padding:22px;min-height:160px;margin-bottom:12px;display:flex;align-items:center;justify-content:center;}
+  .remind-inner{width:100%;}
+  .remind-title{font-size:10px;color:#4fc3f7;letter-spacing:2px;margin-bottom:14px;text-transform:uppercase;}
+  .remind-text{line-height:1.9;color:#c5e8f7;font-size:15px;}
+  .remind-empty{text-align:center;color:#3d6a80;}
+  .remind-empty .fish-icon{font-size:30px;margin-bottom:10px;}
+  .remind-empty p{font-size:13px;}
+  .loading-fish{font-size:28px;animation:swim 2s infinite linear;display:inline-block;}
+
+  /* two-btn row */
+  .btn-row{display:flex;gap:8px;margin-bottom:12px;}
+  .btn-blue{flex:1;padding:12px;border-radius:10px;border:1px solid rgba(79,195,247,.25);background:rgba(79,195,247,.07);color:#4fc3f7;cursor:pointer;font-size:13px;font-family:Georgia,serif;}
+  .btn-green{flex:2;padding:12px;border-radius:10px;border:1px solid rgba(129,212,139,.3);background:rgba(129,212,139,.06);color:#81d48b;cursor:pointer;font-size:13px;font-family:Georgia,serif;}
+  .btn-blue:hover,.btn-green:hover{filter:brightness(1.18);}
+  .btn-primary{width:100%;padding:13px;border-radius:11px;border:1px solid rgba(79,195,247,.3);background:linear-gradient(135deg,rgba(79,195,247,.1),rgba(2,136,209,.16));color:#4fc3f7;font-size:14px;cursor:pointer;letter-spacing:1px;font-family:Georgia,serif;margin-bottom:12px;}
+  .btn-primary:hover{filter:brightness(1.15);}
+
+  /* connect */
+  .connect-card{background:rgba(4,28,48,.88);border-radius:14px;padding:20px;margin-bottom:14px;}
+  .connect-head{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+  .connect-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+  .connect-title{font-size:15px;color:#dff2fb;}
+  .connect-sub{font-size:12px;color:#5a9db8;}
+  .how-box{background:rgba(79,195,247,.05);border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#5a9db8;line-height:1.9;}
+  .how-box strong{color:#4fc3f7;}
+  .how-box code{background:rgba(79,195,247,.1);padding:1px 5px;border-radius:4px;color:#4fc3f7;font-size:11px;}
+  .email-label{display:block;font-size:10px;color:#5a9db8;letter-spacing:2px;margin-bottom:5px;}
+  .email-input{width:100%;padding:9px 12px;border-radius:9px;border:1px solid rgba(129,212,139,.2);background:rgba(129,212,139,.04);color:#dff2fb;font-size:14px;font-family:Georgia,serif;margin-bottom:12px;}
+  .tip-box{background:rgba(255,167,38,.03);border:1px solid rgba(255,167,38,.16);border-radius:12px;padding:14px;}
+  .tip-title{font-size:13px;color:#ffb74d;margin-bottom:5px;}
+  .tip-text{font-size:12px;color:#7a6a55;line-height:1.75;}
+  .tip-text strong{color:#ffb74d;}
+
+  /* alerts */
+  .alerts{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}
+  .alert-badge{padding:4px 12px;border-radius:20px;font-size:11px;}
+  .alert-water{background:rgba(255,167,38,.1);border:1px solid rgba(255,167,38,.35);color:#ffb74d;}
+  .alert-supp{background:rgba(129,212,139,.08);border:1px solid rgba(129,212,139,.3);color:#81d48b;}
+
+  /* supplement rows */
+  .supp-row{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid rgba(79,195,247,.05);}
+  .supp-info .supp-name{font-size:13px;color:#dff2fb;}
+  .supp-info .supp-sub{font-size:11px;color:#5a9db8;margin-top:2px;}
+
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;}
+  .modal{background:#041c30;border:1px solid rgba(79,195,247,.3);border-radius:16px;padding:24px;max-width:360px;width:100%;animation:modalIn .25s ease;}
+  .modal-label{font-size:10px;letter-spacing:3px;color:#4fc3f7;margin-bottom:6px;text-transform:uppercase;}
+  .modal-desc{font-size:14px;color:#c5e8f7;margin-bottom:18px;line-height:1.6;}
+  .modal-options{display:flex;flex-direction:column;gap:8px;margin-bottom:18px;}
+  .modal-opt{padding:10px 14px;border-radius:10px;border:1px solid rgba(79,195,247,.25);background:rgba(79,195,247,.07);color:#4fc3f7;cursor:pointer;font-size:13px;text-align:left;font-family:Georgia,serif;}
+  .modal-opt:hover{filter:brightness(1.15);}
+  .modal-cancel{width:100%;padding:10px;border-radius:10px;border:1px solid rgba(79,195,247,.1);background:transparent;color:#5a9db8;cursor:pointer;font-size:13px;font-family:Georgia,serif;}
+
+  /* toast */
+  .toast{position:fixed;top:18px;right:18px;z-index:300;background:#041c30;padding:9px 15px;border-radius:10px;font-size:12px;animation:toastIn .3s ease;max-width:270px;line-height:1.6;}
+
+  /* tab content */
+  .tab-content{animation:fadeUp .3s ease;}
+
+  /* settings */
+  .settings-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(79,195,247,.05);}
+  .settings-row span:first-child{color:#6aadcb;font-size:12px;}
+  .settings-row span:last-child{color:#c5e6f7;font-size:12px;max-width:55%;text-align:right;}
+  input[type=text],input[type=email],input[type=date],input[type=number],select{outline:none;}
+  .edit-label{display:block;color:#6aadcb;font-size:10px;letter-spacing:1.5px;margin-bottom:4px;text-transform:uppercase;}
+  .edit-input{width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(79,195,247,.18);background:rgba(79,195,247,.03);color:#dff2fb;font-size:13px;font-family:Georgia,serif;margin-bottom:13px;}
+  .edit-select{width:100%;padding:8px 12px;border-radius:8px;border:1px solid rgba(79,195,247,.18);background:#041e33;color:#dff2fb;font-size:13px;font-family:Georgia,serif;margin-bottom:13px;}
+  .storage-note{background:rgba(255,167,38,.03);border:1px solid rgba(255,167,38,.16);border-radius:12px;padding:14px;margin-top:4px;}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+
+<!-- Bubbles injected by JS -->
+<div id="bubbles"></div>
+
+<!-- Toast -->
+<div id="toast" class="toast" style="display:none"></div>
+
+<!-- Snooze Modal -->
+<div id="modal" class="modal-bg" style="display:none">
+  <div class="modal">
+    <div class="modal-label">Reschedule to</div>
+    <div class="modal-desc">Pick a weekend to move this task to:</div>
+    <div id="modal-options" class="modal-options"></div>
+    <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<div class="wrap">
+  <!-- Header -->
+  <div class="header">
+    <span class="fish-swim">🐠</span>
+    <span class="fish-swim2">🐟</span>
+    <h1>AQUARIUM AGENT</h1>
+    <div class="date-label" id="date-label"></div>
+  </div>
+
+  <!-- Alert badges -->
+  <div id="alerts" class="alerts"></div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('today',this)" id="tab-today">📋 Today</button>
+    <button class="tab-btn" onclick="switchTab('schedule',this)">📅 Schedule</button>
+    <button class="tab-btn" onclick="switchTab('remind',this)">💬 Reminder</button>
+    <button class="tab-btn" onclick="switchTab('connect',this)">🔗 Connect</button>
+  </div>
+
+  <!-- TODAY -->
+  <div id="pane-today" class="tab-content">
+    <div class="tank-sel">
+      <button class="tank-btn active" onclick="switchTank('large',this)" id="tankbtn-large">🐟 Large Tank</button>
+      <button class="tank-btn" onclick="switchTank('small',this)" id="tankbtn-small">🐠 Small Tank (Bettas)</button>
+    </div>
+    <div id="feeding-card" class="card"></div>
+    <div id="water-cards" class="card"></div>
+    <div id="supp-cards" class="card"></div>
+    <button class="btn-primary" onclick="generateReminder()">✨ Generate Today's AI Reminder</button>
+  </div>
+
+  <!-- SCHEDULE -->
+  <div id="pane-schedule" class="tab-content" style="display:none">
+    <div class="tank-sel">
+      <button class="tank-btn active" onclick="switchSchedTank('large',this)">🐟 Large Tank</button>
+      <button class="tank-btn" onclick="switchSchedTank('small',this)">🐠 Bettas</button>
+    </div>
+    <div id="sched-grid"></div>
+    <div class="card">
+      <div class="card-title">Supplement Schedule</div>
+      <div class="supp-row"><span style="font-size:18px">🌿</span><div class="supp-info"><div class="supp-name">PlantaPro — <strong style="color:#4fc3f7">1.5ml</strong> (Weekly)</div><div class="supp-sub">Fast-acting trace elements</div></div></div>
+      <div class="supp-row"><span style="font-size:18px">🍃</span><div class="supp-info"><div class="supp-name">PlantaMin — <strong style="color:#4fc3f7">7.5ml</strong> (Monthly)</div><div class="supp-sub">Long-term potassium for green leaves</div></div></div>
+    </div>
+  </div>
+
+  <!-- REMINDER -->
+  <div id="pane-remind" class="tab-content" style="display:none">
+    <div class="remind-box" id="remind-box">
+      <div class="remind-empty">
+        <div class="fish-icon">🐠</div>
+        <p>Press Generate for your daily AI reminder</p>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-blue" id="regen-btn" onclick="generateReminder()">🔄 Regenerate</button>
+      <button class="btn-green" onclick="sendEmail()">✉️ Send via Gmail</button>
+    </div>
+  </div>
+
+  <!-- CONNECT -->
+  <div id="pane-connect" class="tab-content" style="display:none">
+
+    <!-- API Key -->
+    <div class="connect-card" style="border:1px solid rgba(255,167,38,.22);">
+      <div class="connect-head">
+        <div class="connect-icon" style="background:rgba(255,167,38,.1);">🔑</div>
+        <div><div class="connect-title">Anthropic API Key</div><div class="connect-sub">Required for AI reminders outside Claude.ai</div></div>
+      </div>
+      <div class="how-box">Get a free key at <strong>console.anthropic.com</strong> → API Keys → Create Key.<br>Paste it below — it's saved only in your browser.</div>
+      <label class="email-label">API KEY</label>
+      <input type="text" class="email-input" id="api-key-input" placeholder="sk-ant-..." oninput="saveApiKey(this.value)"/>
+    </div>
+
+    <!-- Google Calendar -->
+    <div class="connect-card" style="border:1px solid rgba(79,195,247,.17);">
+      <div class="connect-head">
+        <div class="connect-icon" style="background:rgba(79,195,247,.1);">📅</div>
+        <div><div class="connect-title">Google Calendar</div><div class="connect-sub">Export both tanks + supplements — 6 months</div></div>
+      </div>
+      <div class="how-box">
+        <strong>How to import:</strong><br>
+        1. Click Export below<br>
+        2. Open <strong>calendar.google.com</strong><br>
+        3. ⚙️ Settings → Import &amp; Export → Import<br>
+        4. Upload <code>aquarium-schedule.ics</code>
+      </div>
+      <button class="btn-primary" style="margin-bottom:0" onclick="exportCalendar()">📥 Export to Google Calendar</button>
+    </div>
+
+    <!-- Gmail -->
+    <div class="connect-card" style="border:1px solid rgba(129,212,139,.17);">
+      <div class="connect-head">
+        <div class="connect-icon" style="background:rgba(129,212,139,.08);">✉️</div>
+        <div><div class="connect-title">Gmail</div><div class="connect-sub">Send today's AI reminder to your inbox</div></div>
+      </div>
+      <label class="email-label">YOUR EMAIL ADDRESS</label>
+      <input type="email" class="email-input" id="email-input" placeholder="you@gmail.com" oninput="saveEmail(this.value)"/>
+      <div class="btn-row" style="margin-bottom:0">
+        <button class="btn-blue" onclick="generateReminder()">✨ Generate</button>
+        <button class="btn-green" onclick="sendEmail()">✉️ Open in Gmail</button>
+      </div>
+    </div>
+
+    <div class="storage-note">
+      <div class="tip-title">💾 Stored locally on this device</div>
+      <div class="tip-text">Task completions, dates and settings are saved in your browser. They persist through refreshes but are device-specific.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── SCHEDULES ─────────────────────────────────────────────────────────────────
+const LARGE_FEED = {
+  Monday:    {m:"1/4 tsp Herbivore Pellets", e:"—"},
+  Tuesday:   {m:"1/4 tsp Herbivore Pellets", e:"—"},
+  Wednesday: {m:"—", e:"1/4 tsp Herbivore + 1/8 tsp Catfish Pellets"},
+  Thursday:  {m:"1/4 tsp Herbivore Pellets", e:"—"},
+  Friday:    {m:"1/4 tsp Herbivore Pellets", e:"—"},
+  Saturday:  {m:"🚫 FAST", e:"🚫 FAST"},
+  Sunday:    {m:"🚫 FAST", e:"🚫 FAST"},
+};
+const SMALL_FEED = {
+  Monday:    {m:"2–3 Heron's Pellets per fish", e:"Fasting (veggie scraps ok)"},
+  Tuesday:   {m:"2–3 Heron's Pellets per fish", e:"1/2 portion Heron's Pellets"},
+  Wednesday: {m:"2–3 Heron's Pellets per fish", e:"🚫 Fasting"},
+  Thursday:  {m:"2–3 Heron's Pellets per fish", e:"1/2 portion Heron's Pellets"},
+  Friday:    {m:"2–3 Heron's Pellets per fish", e:"🚫 Fasting"},
+  Saturday:  {m:"1/32 tsp Daphnia (Soaked)", e:"1/2 portion Heron's Pellets"},
+  Sunday:    {m:"🚫 FASTING DAY", e:"🚫 FASTING DAY"},
+};
+const DAYS = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const TODAY = DAYS[new Date().getDay()];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+function defaultState() {
+  const ago = n => { const d=new Date(); d.setDate(d.getDate()-n); return toStr(d); };
+  return {
+    largeWater: {lastDone: ago(9),  snoozedTo: null},
+    smallWater: {lastDone: ago(5),  snoozedTo: null},
+    plantapro:  {lastDone: ago(6)},
+    plantamin:  {lastDone: ago(28)},
+    feedingLog: {},
+    email: "",
+    apiKey: "",
+  };
+}
+
+function loadState() {
+  try { const r=localStorage.getItem("aq_v3"); if(r) return JSON.parse(r); } catch{}
+  return defaultState();
+}
+function saveState() { try { localStorage.setItem("aq_v3", JSON.stringify(ST)); } catch{} }
+
+let ST = loadState();
+let activeTank = "large";
+let schedTank  = "large";
+let currentTab = "today";
+let reminderText = "";
+let snoozeTarget = null;
+
+// ── DATE HELPERS ──────────────────────────────────────────────────────────────
+function toStr(d) { return d.toISOString().split("T")[0]; }
+function fromStr(s) { const d=new Date(s); d.setHours(0,0,0,0); return d; }
+function daysBetween(a,b) { return Math.round((b-a)/86400000); }
+
+function nextWeekend(fromDate) {
+  const d = new Date(fromDate);
+  d.setHours(0,0,0,0);
+  while(d.getDay()!==6 && d.getDay()!==0) d.setDate(d.getDate()+1);
+  return d;
+}
+
+function computeNextDue(lastStr, intervalDays, snoozedTo=null) {
+  if(snoozedTo) return fromStr(snoozedTo);
+  const last = fromStr(lastStr);
+  const natural = new Date(last); natural.setDate(natural.getDate()+intervalDays);
+  return nextWeekend(natural);
+}
+
+function taskStatus(lastStr, intervalDays, snoozedTo=null) {
+  const nextDue = computeNextDue(lastStr, intervalDays, snoozedTo);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const daysUntil = daysBetween(today, nextDue);
+  if(daysUntil<0)  return {label:`OVERDUE (${Math.abs(daysUntil)}d)`, color:"#ff5252", bg:"rgba(255,82,82,.1)",  border:"rgba(255,82,82,.3)",  urgent:true};
+  if(daysUntil===0) return {label:"DUE TODAY",   color:"#ffb74d", bg:"rgba(255,183,77,.1)", border:"rgba(255,183,77,.3)", urgent:true};
+  if(daysUntil<=3)  return {label:`Due in ${daysUntil}d`, color:"#ffb74d", bg:"rgba(255,183,77,.06)",border:"rgba(255,183,77,.18)",urgent:false};
+  return {label:`Due in ${daysUntil}d`, color:"#4fc3f7", bg:"rgba(79,195,247,.06)", border:"rgba(79,195,247,.12)", urgent:false};
+}
+
+function fmtDate(str) {
+  return new Date(str).toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+}
+function fmtDateLong(str) {
+  return new Date(str).toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
+}
+function isFast(s) { return s.includes("FAST")||s.includes("Fasting"); }
+function isFeedDone(tank, session) {
+  return !!ST.feedingLog[`${toStr(new Date())}_${tank}_${session}`];
+}
+
+// ── BUBBLES ───────────────────────────────────────────────────────────────────
+(function(){
+  const c=document.getElementById("bubbles");
+  for(let i=0;i<14;i++){
+    const b=document.createElement("div");
+    b.className="bubble";
+    const size=3+Math.random()*8, left=Math.random()*100;
+    const delay=Math.random()*9, dur=5+Math.random()*6;
+    b.style.cssText=`width:${size}px;height:${size}px;left:${left}%;animation-duration:${dur}s;animation-delay:${delay}s;`;
+    c.appendChild(b);
+  }
+})();
+
+// ── DATE LABEL ────────────────────────────────────────────────────────────────
+document.getElementById("date-label").textContent =
+  new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, color="#4fc3f7") {
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.style.display="block";
+  t.style.border=`1px solid ${color}`; t.style.color=color;
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.style.display="none",3500);
+}
+
+// ── TABS ──────────────────────────────────────────────────────────────────────
+function switchTab(name, btn) {
+  ["today","schedule","remind","connect"].forEach(t=>{
+    document.getElementById("pane-"+t).style.display=t===name?"block":"none";
+  });
+  document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  currentTab=name;
+}
+
+function switchTank(name, btn) {
+  activeTank=name;
+  document.querySelectorAll(".tank-sel .tank-btn").forEach(b=>b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  renderToday();
+}
+
+function switchSchedTank(name, btn) {
+  schedTank=name;
+  document.querySelectorAll("#pane-schedule .tank-sel .tank-btn").forEach(b=>b.classList.remove("active"));
+  if(btn) btn.classList.add("active");
+  renderSchedule();
+}
+
+// ── RENDER ALERTS ─────────────────────────────────────────────────────────────
+function renderAlerts() {
+  const ls=taskStatus(ST.largeWater.lastDone,14,ST.largeWater.snoozedTo);
+  const ss=taskStatus(ST.smallWater.lastDone,14,ST.smallWater.snoozedTo);
+  const pp=taskStatus(ST.plantapro.lastDone,7);
+  const pm=taskStatus(ST.plantamin.lastDone,30);
+  let html="";
+  if(ls.urgent) html+=`<div class="alert-badge alert-water">💧 Large Tank water change ${ls.label}</div>`;
+  if(ss.urgent) html+=`<div class="alert-badge alert-water">💧 Small Tank water change ${ss.label}</div>`;
+  if(pp.urgent) html+=`<div class="alert-badge alert-supp">🌿 PlantaPro due</div>`;
+  if(pm.urgent) html+=`<div class="alert-badge alert-supp">🍃 PlantaMin due</div>`;
+  document.getElementById("alerts").innerHTML=html;
+
+  // update tab badge
+  const count=[ls,ss,pp,pm].filter(s=>s.urgent).length;
+  document.getElementById("tab-today").textContent=`📋 Today${count>0?` (${count})`:""}`;
+}
+
+// ── RENDER TODAY ──────────────────────────────────────────────────────────────
+function renderToday() {
+  renderFeeding();
+  renderWater();
+  renderSupplements();
+  renderAlerts();
+}
+
+function renderFeeding() {
+  const feed = activeTank==="large" ? LARGE_FEED[TODAY] : SMALL_FEED[TODAY];
+  const sessions = [{key:"morning",label:"Morning",val:feed.m},{key:"evening",label:"Evening",val:feed.e}];
+  let html=`<div class="card-title">Today's Feeding — ${TODAY}</div>`;
+  sessions.forEach(s=>{
+    const fast=isFast(s.val)||s.val==="—";
+    const done=isFeedDone(activeTank,s.key);
+    html+=`<div class="feed-row">
+      <div class="feed-session">${s.label}</div>
+      <div class="feed-val ${fast?"fast":done?"done":""}">${s.val==="—"?"No feed this session":s.val}</div>
+      ${!fast ? (done
+        ? `<div class="done-badge">✓ Done</div>`
+        : `<button class="mark-btn" onclick="markFeedDone('${activeTank}','${s.key}')">Mark done</button>`
+      ) : ""}
+    </div>`;
+  });
+  document.getElementById("feeding-card").innerHTML=html;
+}
+
+function renderWater() {
+  const tanks=[
+    {key:"largeWater",label:"Large Tank",change:"35% (~55L)"},
+    {key:"smallWater",label:"Small Tank",change:"25%"},
+  ];
+  let html=`<div class="card-title">Water Changes</div>`;
+  tanks.forEach(t=>{
+    const s=taskStatus(ST[t.key].lastDone,14,ST[t.key].snoozedTo);
+    const nextDue=computeNextDue(ST[t.key].lastDone,14,ST[t.key].snoozedTo);
+    html+=`<div class="status-card" style="background:${s.bg};border:1px solid ${s.border}">
+      <div class="sc-top">
+        <span style="font-size:16px">💧</span>
+        <div class="sc-info">
+          <div class="sc-name">${t.label} — ${t.change}</div>
+          <div class="sc-sub">Last: ${fmtDate(ST[t.key].lastDone)} · Next: ${nextDue.toLocaleDateString("en-GB",{weekday:"short",day:"numeric",month:"short"})}</div>
+        </div>
+        <div class="sc-label" style="color:${s.color}">${s.label}</div>
+      </div>
+      <div class="sc-btns">
+        <button class="btn-done" onclick="markWaterDone('${t.key}')">✓ Done today</button>
+        <button class="btn-reschedule" style="border:1px solid ${s.border};color:${s.color}" onclick="openSnooze('${t.key}')">📅 Reschedule</button>
+      </div>
+    </div>`;
+  });
+  document.getElementById("water-cards").innerHTML=html;
+}
+
+function renderSupplements() {
+  const supps=[
+    {key:"plantapro",name:"PlantaPro",dose:"1.5ml",freq:"Weekly",icon:"🌿",days:7},
+    {key:"plantamin",name:"PlantaMin",dose:"7.5ml",freq:"Monthly",icon:"🍃",days:30},
+  ];
+  let html=`<div class="card-title">Supplements</div>`;
+  supps.forEach(s=>{
+    const st=taskStatus(ST[s.key].lastDone,s.days);
+    html+=`<div class="status-card" style="background:${st.bg};border:1px solid ${st.border}">
+      <div class="sc-top">
+        <span style="font-size:18px">${s.icon}</span>
+        <div class="sc-info">
+          <div class="sc-name">${s.name} — ${s.dose}</div>
+          <div class="sc-sub">${s.freq} · Last: ${fmtDate(ST[s.key].lastDone)} · ${st.label}</div>
+        </div>
+        <div class="sc-label" style="color:${st.color}">${st.label}</div>
+      </div>
+      <button class="btn-done" style="width:100%" onclick="markSuppDone('${s.key}','${s.name}')">✓ Added today</button>
+    </div>`;
+  });
+  document.getElementById("supp-cards").innerHTML=html;
+}
+
+// ── RENDER SCHEDULE ───────────────────────────────────────────────────────────
+function renderSchedule() {
+  const feed = schedTank==="large" ? LARGE_FEED : SMALL_FEED;
+  let html=`<div class="sched-grid">
+    <div class="sched-head"><span>DAY</span><span>MORNING</span><span>EVENING</span></div>`;
+  DAYS.slice(1).concat(["Sunday"]).forEach(day=>{
+    const f=feed[day]; const isToday=day===TODAY;
+    html+=`<div class="sched-row ${isToday?"today":""}">
+      <div class="sched-day">${day.slice(0,3)}${isToday?" ◀":""}</div>
+      <div class="sched-val ${isFast(f.m)?"fast":""}">${f.m}</div>
+      <div class="sched-val ${isFast(f.e)||f.e==="—"?"fast":""}">${f.e}</div>
+    </div>`;
+  });
+  html+="</div>";
+  document.getElementById("sched-grid").innerHTML=html;
+}
+
+// ── MARK ACTIONS ──────────────────────────────────────────────────────────────
+function markFeedDone(tank, session) {
+  const key=`${toStr(new Date())}_${tank}_${session}`;
+  ST.feedingLog[key]=true;
+  saveState(); renderFeeding();
+  showToast("✓ Feeding logged!","#81d48b");
+}
+
+function markWaterDone(tankKey) {
+  ST[tankKey]={lastDone:toStr(new Date()),snoozedTo:null};
+  saveState(); renderToday();
+  showToast("✓ Water change logged! Schedule recalculated.","#81d48b");
+}
+
+function markSuppDone(key, name) {
+  ST[key]={lastDone:toStr(new Date())};
+  saveState(); renderToday();
+  showToast(`✓ ${name} logged!`,"#81d48b");
+}
+
+// ── SNOOZE MODAL ──────────────────────────────────────────────────────────────
+function openSnooze(tankKey) {
+  snoozeTarget=tankKey;
+  const natural=computeNextDue(ST[tankKey].lastDone,14,null);
+  const weekends=[];
+  let cur=new Date(natural);
+  for(let i=0;i<4;i++){
+    const sat=new Date(cur); while(sat.getDay()!==6) sat.setDate(sat.getDate()+1);
+    const sun=new Date(sat); sun.setDate(sun.getDate()+1);
+    weekends.push(toStr(sat),toStr(sun));
+    cur.setDate(cur.getDate()+7);
+  }
+  const unique=[...new Set(weekends)].slice(0,6);
+  let html="";
+  unique.forEach(d=>{
+    html+=`<button class="modal-opt" onclick="confirmSnooze('${d}')">${fmtDateLong(d)}</button>`;
+  });
+  document.getElementById("modal-options").innerHTML=html;
+  document.getElementById("modal").style.display="flex";
+}
+
+function confirmSnooze(dateStr) {
+  ST[snoozeTarget].snoozedTo=dateStr;
+  saveState(); closeModal(); renderToday();
+  showToast(`📅 Rescheduled to ${fmtDateLong(dateStr)}`,"#4fc3f7");
+}
+
+function closeModal() {
+  document.getElementById("modal").style.display="none";
+  snoozeTarget=null;
+}
+
+// ── CONNECT INPUTS ────────────────────────────────────────────────────────────
+function saveEmail(val) { ST.email=val; saveState(); }
+function saveApiKey(val) { ST.apiKey=val; saveState(); }
+
+// Pre-fill inputs from saved state
+window.addEventListener("DOMContentLoaded",()=>{
+  const ei=document.getElementById("email-input");
+  const ai=document.getElementById("api-key-input");
+  if(ei && ST.email) ei.value=ST.email;
+  if(ai && ST.apiKey) ai.value=ST.apiKey;
+});
+
+// ── AI REMINDER ───────────────────────────────────────────────────────────────
+async function generateReminder() {
+  // switch to remind tab
+  document.querySelectorAll(".tab-btn").forEach((b,i)=>{
+    b.classList.toggle("active",["today","schedule","remind","connect"][i]==="remind");
+  });
+  switchTab("remind");
+
+  document.getElementById("remind-box").innerHTML=`
+    <div style="text-align:center;padding:38px 0;width:100%">
+      <div class="loading-fish">🐟</div>
+      <p style="color:#5a9db8;margin-top:10px;letter-spacing:2px;font-size:12px">Generating reminder...</p>
+    </div>`;
+  document.getElementById("regen-btn").textContent="...";
+
+  const lf=LARGE_FEED[TODAY]; const sf=SMALL_FEED[TODAY];
+  const ls=taskStatus(ST.largeWater.lastDone,14,ST.largeWater.snoozedTo);
+  const ss=taskStatus(ST.smallWater.lastDone,14,ST.smallWater.snoozedTo);
+  const pp=taskStatus(ST.plantapro.lastDone,7);
+  const pm=taskStatus(ST.plantamin.lastDone,30);
+  const alerts=[
+    ls.urgent&&`Large Tank water change is ${ls.label}`,
+    ss.urgent&&`Small Tank water change is ${ss.label}`,
+    pp.urgent&&"PlantaPro supplement is due",
+    pm.urgent&&"PlantaMin supplement is due",
+  ].filter(Boolean);
+
+  const prompt=`You are a friendly aquarium assistant. Write a warm daily reminder for someone with two fish tanks.
+Today: ${TODAY}
+LARGE TANK: Morning: ${lf.m}, Evening: ${lf.e}
+SMALL TANK (Bettas): Morning: ${sf.m}, Evening: ${sf.e}
+Alerts: ${alerts.join("; ")||"No urgent alerts today"}
+Write 3–5 warm sentences with 2–3 emojis. If fasting day mention briefly why it's healthy. Gently flag any overdue tasks. End with a quick aquarium tip.`;
+
+  const apiKey = ST.apiKey || "";
+  if(!apiKey) {
+    document.getElementById("remind-box").innerHTML=`<div class="remind-inner">
+      <div class="remind-title">API Key Required</div>
+      <p style="color:#8ab8cc;font-size:13px;line-height:1.8">To generate AI reminders outside of Claude.ai, add your Anthropic API key in the <strong style="color:#4fc3f7">🔗 Connect</strong> tab.<br><br>Get a free key at <strong style="color:#4fc3f7">console.anthropic.com</strong></p>
+    </div>`;
+    document.getElementById("regen-btn").textContent="🔄 Regenerate";
+    return;
+  }
+
+  try {
+    const res=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "x-api-key": apiKey,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true",
+      },
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1000,messages:[{role:"user",content:prompt}]})
+    });
+    const data=await res.json();
+    reminderText=data.content?.find(b=>b.type==="text")?.text||"Could not generate.";
+    if(data.error) reminderText="Error: "+data.error.message;
+  } catch(e) {
+    reminderText="Network error — please try again.";
+  }
+
+  document.getElementById("remind-box").innerHTML=`<div class="remind-inner">
+    <div class="remind-title">Today's Reminder — ${TODAY}</div>
+    <div class="remind-text">${reminderText.replace(/\n/g,"<br>")}</div>
+  </div>`;
+  document.getElementById("regen-btn").textContent="🔄 Regenerate";
+}
+
+// ── GMAIL ─────────────────────────────────────────────────────────────────────
+function sendEmail() {
+  if(!ST.email){ showToast("Add your email in the Connect tab!","#ff7043"); return; }
+  if(!reminderText){ showToast("Generate a reminder first!","#ff7043"); return; }
+  const lf=LARGE_FEED[TODAY]; const sf=SMALL_FEED[TODAY];
+  const ls=taskStatus(ST.largeWater.lastDone,14,ST.largeWater.snoozedTo);
+  const ss=taskStatus(ST.smallWater.lastDone,14,ST.smallWater.snoozedTo);
+  const subject=`🐠 Aquarium Daily Reminder — ${TODAY}`;
+  const body=`${reminderText}\n\n---\nLARGE TANK (${TODAY})\nMorning: ${lf.m}\nEvening: ${lf.e}\nWater change: ${ls.label}\n\nSMALL TANK / BETTAS\nMorning: ${sf.m}\nEvening: ${sf.e}\nWater change: ${ss.label}\n\n— Aquarium Agent 🐠`;
+  window.open(`mailto:${encodeURIComponent(ST.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`,"_blank");
+  showToast("✉️ Opening Gmail draft...","#81d48b");
+}
+
+// ── CALENDAR EXPORT ───────────────────────────────────────────────────────────
+function exportCalendar() {
+  const events=[];
+  const base=new Date(); base.setHours(8,0,0,0);
+  for(let i=0;i<28;i++){
+    const d=new Date(base); d.setDate(d.getDate()+i);
+    const dn=DAYS[d.getDay()]; const lf=LARGE_FEED[dn]; const sf=SMALL_FEED[dn];
+    if(!lf.m.includes("FAST")&&lf.m!=="—") events.push({title:"🐟 Large Tank — "+lf.m,desc:lf.m,date:new Date(d)});
+    if(lf.e!=="—"&&!lf.e.includes("FAST")){const ev=new Date(d);ev.setHours(19,0,0,0);events.push({title:"🐟 Large Evening — "+lf.e,desc:lf.e,date:ev});}
+    if(!sf.m.includes("FAST")) events.push({title:"🐠 Bettas — "+sf.m,desc:sf.m,date:new Date(d)});
+  }
+  const lNext=computeNextDue(ST.largeWater.lastDone,14,ST.largeWater.snoozedTo);
+  const sNext=computeNextDue(ST.smallWater.lastDone,14,ST.smallWater.snoozedTo);
+  for(let w=0;w<6;w++){
+    const ld=new Date(lNext);ld.setDate(ld.getDate()+w*14);events.push({title:"💧 Large Tank Water Change (35%/~55L)",desc:"35% water change.",date:ld});
+    const sd=new Date(sNext);sd.setDate(sd.getDate()+w*14);events.push({title:"💧 Small Tank Water Change (25%)",desc:"25% water change.",date:sd});
+  }
+  for(let w=0;w<12;w++){const d=new Date(base);d.setDate(d.getDate()+w*7);events.push({title:"🌿 PlantaPro (1.5ml)",desc:"Add 1.5ml PlantaPro.",date:d});}
+  for(let m=0;m<6;m++){const d=new Date(base);d.setMonth(d.getMonth()+m);events.push({title:"🍃 PlantaMin (7.5ml)",desc:"Add 7.5ml PlantaMin.",date:d});}
+
+  const lines=["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//AquariumAgent//EN","CALSCALE:GREGORIAN","METHOD:PUBLISH"];
+  events.forEach(({title,desc,date})=>{
+    const uid=Math.random().toString(36).slice(2)+"@aqua";
+    const fmt=d=>d.toISOString().replace(/[-:]/g,"").split(".")[0]+"Z";
+    lines.push("BEGIN:VEVENT",`UID:${uid}`,`DTSTAMP:${fmt(new Date())}`,
+      `DTSTART:${fmt(date)}`,`DTEND:${fmt(new Date(date.getTime()+30*60000))}`,
+      `SUMMARY:${title}`,`DESCRIPTION:${desc}`,
+      "END:VEVENT");
+  });
+  lines.push("END:VCALENDAR");
+
+  const blob=new Blob([lines.join("\r\n")],{type:"text/calendar"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download="aquarium-schedule.ics"; a.click();
+  showToast("📅 Exported! Import into Google Calendar.","#4fc3f7");
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+renderToday();
+renderSchedule();
+</script>
+</body>
+</html>
