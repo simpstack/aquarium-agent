@@ -145,6 +145,23 @@ h1{font-size:21px;font-weight:normal;letter-spacing:4px;color:#4fc3f7;margin:6px
 .toast{position:fixed;top:18px;right:18px;z-index:300;background:#041c30;padding:9px 15px;border-radius:10px;font-size:12px;animation:toastIn .3s ease;max-width:270px;line-height:1.6;display:none;}
 
 .tab-content{animation:fadeUp .3s ease;}
+/* pin lock */
+.pin-screen{position:fixed;inset:0;background:#010c15;z-index:500;display:flex;align-items:center;justify-content:center;flex-direction:column;}
+.pin-fish{font-size:38px;animation:swim 8s infinite linear;display:inline-block;margin-bottom:12px;}
+.pin-title{font-size:18px;font-weight:normal;letter-spacing:4px;color:#4fc3f7;margin-bottom:4px;text-shadow:0 0 20px rgba(79,195,247,.4);}
+.pin-sub{font-size:12px;color:#5a9db8;letter-spacing:1px;margin-bottom:28px;}
+.pin-dots{display:flex;gap:14px;margin-bottom:28px;}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(79,195,247,.35);background:transparent;transition:all .2s;}
+.pin-dot.filled{background:#4fc3f7;border-color:#4fc3f7;box-shadow:0 0 8px rgba(79,195,247,.6);}
+.pin-dot.error{background:#ff5252;border-color:#ff5252;box-shadow:0 0 8px rgba(255,82,82,.6);}
+.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:220px;}
+.pin-key{padding:16px;border-radius:12px;border:1px solid rgba(79,195,247,.18);background:rgba(4,28,48,.85);color:#dff2fb;font-size:20px;font-family:Georgia,serif;cursor:pointer;transition:all .15s;text-align:center;}
+.pin-key:hover{background:rgba(79,195,247,.12);border-color:rgba(79,195,247,.4);}
+.pin-key:active{transform:scale(.93);}
+.pin-key.del{font-size:16px;color:#5a9db8;}
+.pin-shake{animation:shake .35s ease;}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
+
 .supp-row{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid rgba(79,195,247,.05);}
 .supp-name{font-size:13px;color:#dff2fb;}
 .supp-sub{font-size:11px;color:#5a9db8;margin-top:2px;}
@@ -152,6 +169,33 @@ select{outline:none;font-family:Georgia,serif;}
 </style>
 </head>
 <body>
+<!-- PIN Lock Screen -->
+<div id="pin-screen" class="pin-screen">
+  <span class="pin-fish">🐠</span>
+  <div class="pin-title">AQUARIUM AGENT</div>
+  <div class="pin-sub">Enter PIN to continue</div>
+  <div id="pin-dots" class="pin-dots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-grid">
+    <button class="pin-key" onclick="pinPress('1')">1</button>
+    <button class="pin-key" onclick="pinPress('2')">2</button>
+    <button class="pin-key" onclick="pinPress('3')">3</button>
+    <button class="pin-key" onclick="pinPress('4')">4</button>
+    <button class="pin-key" onclick="pinPress('5')">5</button>
+    <button class="pin-key" onclick="pinPress('6')">6</button>
+    <button class="pin-key" onclick="pinPress('7')">7</button>
+    <button class="pin-key" onclick="pinPress('8')">8</button>
+    <button class="pin-key" onclick="pinPress('9')">9</button>
+    <div></div>
+    <button class="pin-key" onclick="pinPress('0')">0</button>
+    <button class="pin-key del" onclick="pinDel()">⌫</button>
+  </div>
+</div>
+
 <div class="bg"></div>
 <div id="bubbles"></div>
 <div id="toast" class="toast"></div>
@@ -184,11 +228,7 @@ select{outline:none;font-family:Georgia,serif;}
 
   <!-- TODAY -->
   <div id="pane-today" class="tab-content">
-    <div class="tank-sel">
-      <button class="tank-btn active" onclick="switchTank('large',this)">🐟 Large Tank</button>
-      <button class="tank-btn" onclick="switchTank('small',this)">🐠 Small Tank (Bettas)</button>
-    </div>
-    <div id="feeding-card" class="card"></div>
+    <div id="feeding-card"></div>
     <div id="task-cards"></div>
     <button class="btn-primary" onclick="generateReminder()">✨ Generate Today's AI Reminder</button>
   </div>
@@ -202,8 +242,7 @@ select{outline:none;font-family:Georgia,serif;}
     <div id="sched-grid"></div>
     <div class="card">
       <div class="card-title">Supplement Schedule</div>
-      <div class="supp-row"><span style="font-size:18px">🌿</span><div><div class="supp-name">PlantaPro — <strong style="color:#4fc3f7">1.5ml</strong> (Weekly)</div><div class="supp-sub">Fast-acting trace elements</div></div></div>
-      <div class="supp-row"><span style="font-size:18px">🍃</span><div><div class="supp-name">PlantaMin — <strong style="color:#4fc3f7">7.5ml</strong> (Monthly)</div><div class="supp-sub">Long-term potassium for green leaves</div></div></div>
+      <div id="sched-supps"></div>
     </div>
   </div>
 
@@ -214,32 +253,14 @@ select{outline:none;font-family:Georgia,serif;}
     </div>
     <div class="btn-row">
       <button class="btn-blue" id="regen-btn" onclick="generateReminder()">🔄 Regenerate</button>
-      <button class="btn-green" onclick="sendEmail()">✉️ Send via Gmail</button>
+      <button class="btn-green" onclick="sendEmail()">✉️ Send Email</button>
     </div>
   </div>
 
   <!-- CONNECT -->
   <div id="pane-connect" class="tab-content" style="display:none">
 
-    <!-- Groq API Key -->
-    <div class="con-card" style="border:1px solid rgba(79,195,247,.22);">
-      <div class="con-head">
-        <div class="con-icon" style="background:rgba(79,195,247,.12);">🔑</div>
-        <div><div class="con-title">Groq API Key</div><div class="con-sub">100% free — works in the UK — no card needed</div></div>
-      </div>
-      <div class="how-box">
-        <strong>How to get your free Groq API key:</strong><br>
-        1. Go to <strong>console.groq.com</strong><br>
-        2. Sign up with Google or email<br>
-        3. Click <strong>API Keys</strong> in the left sidebar<br>
-        4. Click <strong>Create API Key</strong> → name it "Aquarium Agent"<br>
-        5. Copy the key and paste it below<br><br>
-        <strong>Free tier:</strong> 30 requests/minute, 14,400/day. No card, no region restrictions.
-      </div>
-      <label class="field-label">GROQ API KEY</label>
-      <input type="text" class="field-input" id="api-key-input" placeholder="gsk_..." oninput="saveApiKey(this.value)"/>
-      <div id="key-status" style="font-size:12px;color:#5a9db8;margin-top:-8px;margin-bottom:4px;"></div>
-    </div>
+
 
     <!-- Google Calendar -->
     <div class="con-card" style="border:1px solid rgba(79,195,247,.17);">
@@ -248,11 +269,15 @@ select{outline:none;font-family:Georgia,serif;}
         <div><div class="con-title">Google Calendar</div><div class="con-sub">Export both tanks + supplements</div></div>
       </div>
       <div class="how-box">
-        <strong>How to import:</strong><br>
+        <strong>Google Calendar:</strong><br>
         1. Click Export below<br>
         2. Open <strong>calendar.google.com</strong><br>
         3. ⚙️ Settings → Import &amp; Export → Import<br>
-        4. Upload <code>aquarium-schedule.ics</code>
+        4. Upload <code>aquarium-schedule.ics</code><br><br>
+        <strong>iOS Calendar (iPhone/iPad):</strong><br>
+        1. Click Export below<br>
+        2. In the download, tap the <code>.ics</code> file<br>
+        3. Tap <strong>Open in Calendar</strong> → Add All
       </div>
       <button class="btn-primary" style="margin-bottom:0" onclick="exportCalendar()">📥 Export to Google Calendar</button>
     </div>
@@ -261,13 +286,12 @@ select{outline:none;font-family:Georgia,serif;}
     <div class="con-card" style="border:1px solid rgba(129,212,139,.17);">
       <div class="con-head">
         <div class="con-icon" style="background:rgba(129,212,139,.08);">✉️</div>
-        <div><div class="con-title">Gmail</div><div class="con-sub">Send today's AI reminder to your inbox</div></div>
+        <div><div class="con-title">Email</div><div class="con-sub">Works with Gmail, Hotmail, Outlook or any email app</div></div>
       </div>
       <label class="field-label">YOUR EMAIL ADDRESS</label>
       <input type="email" class="field-input green" id="email-input" placeholder="you@gmail.com" oninput="saveEmail(this.value)"/>
       <div class="btn-row" style="margin-bottom:0">
-        <button class="btn-blue" onclick="generateReminder()">✨ Generate</button>
-        <button class="btn-green" onclick="sendEmail()">✉️ Open in Gmail</button>
+        <button class="btn-green" style="flex:1" onclick="sendEmail()">✉️ Send Email</button>
       </div>
     </div>
 
@@ -302,23 +326,20 @@ const TODAY=DAYS[new Date().getDay()];
 function ago(n){const d=new Date();d.setDate(d.getDate()-n);return toStr(d);}
 function defaultState(){
   return{
-    largeWater:{lastDone:ago(9),snoozedTo:null,confirming:false},
-    smallWater:{lastDone:ago(5),snoozedTo:null,confirming:false},
-    plantapro:{lastDone:ago(6),confirming:false},
-    plantamin:{lastDone:ago(28),confirming:false},
-    feedingLog:{},email:"",apiKey:"",
+    largeWater:{lastDone:ago(9),snoozedTo:null},
+    smallWater:{lastDone:ago(5),snoozedTo:null},
+    plantapro:{lastDone:ago(6)},
+    plantamin:{lastDone:ago(28)},
+    feedingLog:{},email:"",apiKey:"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",
   };
 }
 function loadState(){try{const r=localStorage.getItem("aq_v4");if(r)return JSON.parse(r);}catch{}return defaultState();}
 function save(){try{localStorage.setItem("aq_v4",JSON.stringify(ST));}catch{}}
 
 let ST=loadState();
-// ensure confirming fields exist on old saves
-["largeWater","smallWater","plantapro","plantamin"].forEach(k=>{
-  if(ST[k] && ST[k].confirming===undefined) ST[k].confirming=false;
-});
 
-let activeTank="large", schedTank="large", reminderText="", snoozeTarget=null;
+
+let schedTank="large", reminderText="", snoozeTarget=null;
 
 // ── DATE HELPERS ──────────────────────────────────────────────────────────────
 function toStr(d){return d.toISOString().split("T")[0];}
@@ -368,12 +389,7 @@ function switchTab(name,btn){
   document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
   if(btn)btn.classList.add("active");
 }
-function switchTank(name,btn){
-  activeTank=name;
-  document.querySelectorAll("#pane-today .tank-sel .tank-btn").forEach(b=>b.classList.remove("active"));
-  if(btn)btn.classList.add("active");
-  renderFeeding();
-}
+// switchTank removed — today tab shows all tanks
 function switchSchedTank(name,btn){
   schedTank=name;
   document.querySelectorAll("#pane-schedule .tank-sel .tank-btn").forEach(b=>b.classList.remove("active"));
@@ -398,28 +414,35 @@ function renderAlerts(){
 }
 
 // ── FEEDING ───────────────────────────────────────────────────────────────────
-function renderFeeding(){
-  const feed=activeTank==="large"?LARGE_FEED[TODAY]:SMALL_FEED[TODAY];
-  let html=`<div class="card-title">Today's Feeding — ${TODAY}</div>`;
+function feedRows(tank,feed){
+  let h="";
   [{key:"morning",label:"Morning",val:feed.m},{key:"evening",label:"Evening",val:feed.e}].forEach(s=>{
     const fast=isFast(s.val)||s.val==="—";
-    const done=isFeedDone(activeTank,s.key);
-    html+=`<div class="feed-row">
-      <div class="feed-session">${s.label}</div>
-      <div class="feed-val${fast?" fast":done?" done":""}">${s.val==="—"?"No feed":s.val}</div>
-      ${!fast?(done?`<div class="done-badge">✓ Done</div>`:`<button class="mark-btn" onclick="markFeedDone('${activeTank}','${s.key}')">Mark done</button>`):""}
-    </div>`;
+    const done=isFeedDone(tank,s.key);
+    const action=fast?"":done
+      ?'<div class="done-badge">✓ Done</div>'
+      :'<button class="mark-btn" onclick="markFeedDone(\''+tank+'\',\''+s.key+'\')">Mark done</button>';
+    const cls="feed-val"+(fast?" fast":done?" done":"");
+    const txt=s.val==="—"?"No feed":s.val;
+    h+='<div class="feed-row"><div class="feed-session">'+s.label+'</div><div class="'+cls+'">'+txt+'</div>'+action+'</div>';
   });
-  document.getElementById("feeding-card").innerHTML=html;
+  return h;
+}
+function renderFeeding(){
+  const lFeed=LARGE_FEED[TODAY];
+  const sFeed=SMALL_FEED[TODAY];
+  document.getElementById("feeding-card").innerHTML=
+    '<div class="card" style="margin-bottom:10px"><div class="card-title" style="color:#4fc3f7">🐟 Large Tank — Feeding</div>'+feedRows("large",lFeed)+'</div>'+
+    '<div class="card" style="margin-bottom:10px"><div class="card-title" style="color:#81d4fa">🐠 Small Tank (Bettas) — Feeding</div>'+feedRows("small",sFeed)+'</div>';
 }
 
 // ── TWO-WAY TASK CARDS ────────────────────────────────────────────────────────
 function renderTaskCards(){
   const tasks=[
-    {key:"largeWater", icon:"💧", name:"Large Tank Water Change", detail:"35% (~55L)", interval:14, snooze:true},
-    {key:"smallWater", icon:"💧", name:"Small Tank Water Change", detail:"25%",        interval:14, snooze:true},
-    {key:"plantapro",  icon:"🌿", name:"PlantaPro",              detail:"1.5ml",       interval:7,  snooze:false},
-    {key:"plantamin",  icon:"🍃", name:"PlantaMin",              detail:"7.5ml",       interval:30, snooze:false},
+    {key:"largeWater", icon:"💧", name:"Large Tank — Water Change",        detail:"35% (~55L)", interval:14, tank:"large"},
+    {key:"smallWater", icon:"💧", name:"Small Tank — Water Change",        detail:"25%",        interval:14, tank:"small"},
+    {key:"plantapro",  icon:"🌿", name:"Small Tank — PlantaPro",           detail:"1.5ml",      interval:7,  tank:"small"},
+    {key:"plantamin",  icon:"🍃", name:"Small Tank — PlantaMin",           detail:"7.5ml",      interval:30, tank:"small"},
   ];
   let html="";
   tasks.forEach(t=>{
@@ -443,21 +466,6 @@ function renderTaskCards(){
           <button class="btn-undo" onclick="undoTask('${t.key}')">Undo</button>
         </div>
       </div>`;
-    } else if(data.confirming){
-      // ── CONFIRMATION STATE: the two-way check ──
-      html+=`<div class="task-card state-${cardState}" style="background:${st.bg};border:1px solid ${st.border}">
-        <div class="task-top">
-          <div class="task-icon">${t.icon}</div>
-          <div class="task-info">
-            <div class="task-name">${t.name} — ${t.detail}</div>
-            <div class="task-meta" style="color:#ffb74d">Did you actually complete this just now?</div>
-          </div>
-        </div>
-        <div class="confirm-row">
-          <button class="confirm-btn btn-confirm-yes" onclick="confirmTaskYes('${t.key}')">✓ Yes, done!</button>
-          <button class="confirm-btn btn-confirm-no" onclick="confirmTaskNo('${t.key}')">✗ Not yet</button>
-        </div>
-      </div>`;
     } else {
       // Normal state — show mark done + reschedule
       html+=`<div class="task-card state-${cardState}" style="background:${st.bg};border:1px solid ${st.border}">
@@ -473,8 +481,8 @@ function renderTaskCards(){
           <div class="task-status-pill" style="color:${st.color};background:${st.bg};border:1px solid ${st.border}">${st.label}</div>
         </div>
         <div class="confirm-row">
-          <button class="btn-mark" onclick="startConfirm('${t.key}')">Mark as done</button>
-          ${t.snooze?`<button class="btn-reschedule" style="border:1px solid ${st.border};color:${st.color}" onclick="openSnooze('${t.key}')">📅 Reschedule</button>`:""}
+          <button class="confirm-btn btn-confirm-yes" onclick="markTaskDone('${t.key}')">✓ Done</button>
+          <button class="confirm-btn btn-confirm-no" onclick="delayTask('${t.key}')">⏱ Delay 1 week</button>
         </div>
       </div>`;
     }
@@ -484,34 +492,29 @@ function renderTaskCards(){
 
 // ── TASK ACTIONS ──────────────────────────────────────────────────────────────
 
-// Step 1: tap "Mark as done" → enters confirming state
-function startConfirm(key){
-  ST[key].confirming=true;
-  save(); renderTaskCards();
-}
-
-// Step 2a: confirm YES → mark done, clear snooze, exit confirming
-function confirmTaskYes(key){
+// Mark as done — log today, clear any snooze
+function markTaskDone(key){
   ST[key].lastDone=toStr(new Date());
   ST[key].snoozedTo=null;
-  ST[key].confirming=false;
   save(); renderTaskCards(); renderAlerts();
   const names={largeWater:"Large Tank water change",smallWater:"Small Tank water change",plantapro:"PlantaPro",plantamin:"PlantaMin"};
   showToast(`✅ ${names[key]} logged! Schedule recalculated.`,"#81d48b");
 }
 
-// Step 2b: confirm NO → back to normal, no change
-function confirmTaskNo(key){
-  ST[key].confirming=false;
-  save(); renderTaskCards();
-  showToast("No problem — it'll stay on your list.","#5a9db8");
+// Delay — push the next due date forward by 7 days from today
+function delayTask(key){
+  const next=computeNext(ST[key].lastDone, key==="plantapro"?7:key==="plantamin"?30:14, ST[key].snoozedTo||null);
+  const delayed=new Date(next); delayed.setDate(delayed.getDate()+7);
+  ST[key].snoozedTo=toStr(delayed);
+  save(); renderTaskCards(); renderAlerts();
+  showToast(`⏱ Pushed back to ${fmtLong(toStr(delayed))}`,"#ffb74d");
 }
 
 // Undo from done state
 function undoTask(key){
   const yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
   ST[key].lastDone=toStr(yesterday);
-  ST[key].confirming=false;
+  ST[key].snoozedTo=null;
   save(); renderTaskCards(); renderAlerts();
   showToast("↩ Undone","#ffb74d");
 }
@@ -525,8 +528,7 @@ function markFeedDone(tank,session){
 // ── SNOOZE ────────────────────────────────────────────────────────────────────
 function openSnooze(key){
   snoozeTarget=key;
-  ST[key].confirming=false; save();
-  const nat=computeNext(ST[key].lastDone,14,null);
+    const nat=computeNext(ST[key].lastDone,14,null);
   const ws=[];let cur=new Date(nat);
   for(let i=0;i<4;i++){
     const sat=new Date(cur);while(sat.getDay()!==6)sat.setDate(sat.getDate()+1);
@@ -558,14 +560,19 @@ function renderSchedule(){
   });
   html+="</div>";
   document.getElementById("sched-grid").innerHTML=html;
+  // Only show supplements for small tank
+  const suppEl=document.getElementById("sched-supps");
+  if(suppEl){
+    suppEl.innerHTML=schedTank==="small"
+      ?`<div class="supp-row"><span style="font-size:18px">🌿</span><div><div class="supp-name">PlantaPro — <strong style="color:#4fc3f7">1.5ml</strong> (Weekly)</div><div class="supp-sub">Fast-acting trace elements</div></div></div>
+        <div class="supp-row"><span style="font-size:18px">🍃</span><div><div class="supp-name">PlantaMin — <strong style="color:#4fc3f7">7.5ml</strong> (Monthly)</div><div class="supp-sub">Long-term potassium for green leaves</div></div></div>`
+      :"<p style='font-size:12px;color:#3d6a80;padding:8px 0'>No supplements for the large tank.</p>";
+  }
 }
 
 // ── CONNECT INPUTS ────────────────────────────────────────────────────────────
 function saveEmail(v){ST.email=v;save();}
-function saveApiKey(v){
-  ST.apiKey=v;save();
-  document.getElementById("key-status").textContent=v.length>10?"✓ Key saved — ready to generate reminders":"";
-}
+
 
 // ── GEMINI AI REMINDER ────────────────────────────────────────────────────────
 async function generateReminder(){
@@ -602,13 +609,21 @@ Write 3–5 warm sentences with 2–3 emojis. If it's a fasting day briefly ment
   try{
     const res=await fetch("https://api.groq.com/openai/v1/chat/completions",{
       method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+ST.apiKey},
-      body:JSON.stringify({model:"llama-3.1-8b-instant",messages:[{role:"user",content:prompt}],max_tokens:500})
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+ST.apiKey,
+        "Accept":"application/json"
+      },
+      body:JSON.stringify({model:"llama-3.1-8b-instant",messages:[{role:"system",content:"You are a friendly aquarium assistant."},{role:"user",content:prompt}],max_tokens:500,temperature:0.7})
     });
-    const data=await res.json();
-    if(data.error){reminderText="Error: "+data.error.message;}
-    else{reminderText=data.choices?.[0]?.message?.content||"Could not generate.";}
-  }catch(e){reminderText="Network error — please try again.";}
+    if(!res.ok){
+      const err=await res.json().catch(()=>({}));
+      reminderText="Error "+(res.status)+": "+(err?.error?.message||res.statusText);
+    } else {
+      const data=await res.json();
+      reminderText=data.choices?.[0]?.message?.content||"Could not generate.";
+    }
+  }catch(e){reminderText="Error: "+e.message+" — Check your API key in the Connect tab.";} 
 
   document.getElementById("remind-box").innerHTML=`<div style="width:100%"><div class="remind-title">Today's Reminder — ${TODAY}</div><div class="remind-text">${reminderText.replace(/\n/g,"<br>")}</div></div>`;
   document.getElementById("regen-btn").textContent="🔄 Regenerate";
@@ -655,12 +670,52 @@ function exportCalendar(){
   showToast("📅 Exported! Import into Google Calendar.","#4fc3f7");
 }
 
+
+// ── PIN LOCK ──────────────────────────────────────────────────────────────────
+const CORRECT_PIN = "3315"; // ← CHANGE THIS TO YOUR PIN
+let pinEntry = "";
+
+function pinPress(digit) {
+  if(pinEntry.length >= 4) return;
+  pinEntry += digit;
+  updateDots();
+  if(pinEntry.length === 4) {
+    setTimeout(() => checkPin(), 150);
+  }
+}
+
+function pinDel() {
+  pinEntry = pinEntry.slice(0, -1);
+  updateDots();
+}
+
+function updateDots(state) {
+  for(let i=0;i<4;i++){
+    const d=document.getElementById("d"+i);
+    d.className="pin-dot";
+    if(state==="error") d.classList.add("error");
+    else if(i < pinEntry.length) d.classList.add("filled");
+  }
+}
+
+function checkPin() {
+  if(pinEntry === CORRECT_PIN) {
+    document.getElementById("pin-screen").style.display="none";
+  } else {
+    updateDots("error");
+    document.getElementById("pin-dots").classList.add("pin-shake");
+    setTimeout(()=>{
+      pinEntry="";
+      updateDots();
+      document.getElementById("pin-dots").classList.remove("pin-shake");
+    }, 600);
+  }
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 window.addEventListener("DOMContentLoaded",()=>{
   const ei=document.getElementById("email-input");
-  const ai=document.getElementById("api-key-input");
   if(ei&&ST.email)ei.value=ST.email;
-  if(ai&&ST.apiKey){ai.value=ST.apiKey;document.getElementById("key-status").textContent="✓ Key saved — ready to generate reminders";}
 });
 
 renderFeeding();
