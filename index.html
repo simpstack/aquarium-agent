@@ -149,21 +149,6 @@ h1{font-size:21px;font-weight:normal;letter-spacing:4px;color:#4fc3f7;margin:6px
 .toast{position:fixed;top:18px;right:18px;z-index:300;background:#041c30;padding:9px 15px;border-radius:10px;font-size:12px;animation:toastIn .3s ease;max-width:270px;line-height:1.6;display:none;}
 
 .tab-content{animation:fadeUp .3s ease;}
-/* pin lock */
-.pin-screen{position:fixed;inset:0;background:#010c15;z-index:500;display:flex;align-items:center;justify-content:center;flex-direction:column;}
-.pin-fish{font-size:38px;animation:swim 8s infinite linear;display:inline-block;margin-bottom:12px;}
-.pin-title{font-size:18px;font-weight:normal;letter-spacing:4px;color:#4fc3f7;margin-bottom:4px;text-shadow:0 0 20px rgba(79,195,247,.4);}
-.pin-sub{font-size:12px;color:#5a9db8;letter-spacing:1px;margin-bottom:28px;}
-.pin-dots{display:flex;gap:14px;margin-bottom:28px;}
-.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid rgba(79,195,247,.35);background:transparent;transition:all .2s;}
-.pin-dot.filled{background:#4fc3f7;border-color:#4fc3f7;box-shadow:0 0 8px rgba(79,195,247,.6);}
-.pin-dot.error{background:#ff5252;border-color:#ff5252;box-shadow:0 0 8px rgba(255,82,82,.6);}
-.pin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:220px;}
-.pin-key{padding:16px;border-radius:12px;border:1px solid rgba(79,195,247,.18);background:rgba(4,28,48,.85);color:#dff2fb;font-size:20px;font-family:Georgia,serif;cursor:pointer;transition:all .15s;text-align:center;}
-.pin-key:hover{background:rgba(79,195,247,.12);border-color:rgba(79,195,247,.4);}
-.pin-key:active{transform:scale(.93);}
-.pin-key.del{font-size:16px;color:#5a9db8;}
-.pin-shake{animation:shake .35s ease;}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(5px)}}
 
 .supp-row{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid rgba(79,195,247,.05);}
@@ -173,37 +158,7 @@ select{outline:none;font-family:Georgia,serif;}
 </style>
 </head>
 <body>
-<!-- PIN Lock Screen -->
-<div id="pin-screen" class="pin-screen">
-  <span class="pin-fish">🐠</span>
-  <div class="pin-title">AQUARIUM AGENT</div>
-  <div class="pin-sub">Enter PIN to continue</div>
-  <div id="pin-dots" class="pin-dots">
-    <div class="pin-dot" id="d0"></div>
-    <div class="pin-dot" id="d1"></div>
-    <div class="pin-dot" id="d2"></div>
-    <div class="pin-dot" id="d3"></div>
-  </div>
-  <div class="pin-grid">
-    <button class="pin-key" onclick="pinPress('1')">1</button>
-    <button class="pin-key" onclick="pinPress('2')">2</button>
-    <button class="pin-key" onclick="pinPress('3')">3</button>
-    <button class="pin-key" onclick="pinPress('4')">4</button>
-    <button class="pin-key" onclick="pinPress('5')">5</button>
-    <button class="pin-key" onclick="pinPress('6')">6</button>
-    <button class="pin-key" onclick="pinPress('7')">7</button>
-    <button class="pin-key" onclick="pinPress('8')">8</button>
-    <button class="pin-key" onclick="pinPress('9')">9</button>
-    <div></div>
-    <button class="pin-key" onclick="pinPress('0')">0</button>
-    <button class="pin-key del" onclick="pinDel()">⌫</button>
-  </div>
-</div>
-
-<div class="bg"></div>
-<div id="bubbles"></div>
 <div id="toast" class="toast"></div>
-
 <!-- Snooze Modal -->
 <div id="modal" class="modal-bg" style="display:none">
   <div class="modal">
@@ -214,6 +169,7 @@ select{outline:none;font-family:Georgia,serif;}
   </div>
 </div>
 
+<div id="bubbles"></div>
 <div class="wrap">
   <div class="header">
     <span class="fish1">🐠</span><span class="fish2">🐟</span>
@@ -384,9 +340,9 @@ function taskStatus(lastStr,interval,snoozedTo=null){
 }
 
 // ── BUBBLES ───────────────────────────────────────────────────────────────────
-(()=>{const c=document.getElementById("bubbles");for(let i=0;i<14;i++){const b=document.createElement("div");b.className="bubble";const sz=3+Math.random()*8;b.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;animation-duration:${5+Math.random()*6}s;animation-delay:${Math.random()*9}s;`;c.appendChild(b);}})();
 
-document.getElementById("date-lbl").textContent=new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
+
+
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
 let toastTimer;
@@ -732,57 +688,22 @@ function exportCalendar(){
 }
 
 
-// ── PIN LOCK ──────────────────────────────────────────────────────────────────
-const CORRECT_PIN = "3315"; // ← CHANGE THIS TO YOUR PIN
-let pinEntry = "";
 
-function pinPress(digit) {
-  if(pinEntry.length >= 4) return;
-  pinEntry += digit;
-  updateDots();
-  if(pinEntry.length === 4) {
-    setTimeout(() => checkPin(), 150);
-  }
-}
-
-function pinDel() {
-  pinEntry = pinEntry.slice(0, -1);
-  updateDots();
-}
-
-function updateDots(state) {
-  for(let i=0;i<4;i++){
-    const d=document.getElementById("d"+i);
-    d.className="pin-dot";
-    if(state==="error") d.classList.add("error");
-    else if(i < pinEntry.length) d.classList.add("filled");
-  }
-}
-
-function checkPin() {
-  if(pinEntry === CORRECT_PIN) {
-    document.getElementById("pin-screen").style.display="none";
-  } else {
-    updateDots("error");
-    document.getElementById("pin-dots").classList.add("pin-shake");
-    setTimeout(()=>{
-      pinEntry="";
-      updateDots();
-      document.getElementById("pin-dots").classList.remove("pin-shake");
-    }, 600);
-  }
-}
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 window.addEventListener("DOMContentLoaded",()=>{
+  // Bubbles
+  const c=document.getElementById("bubbles");
+  for(let i=0;i<14;i++){const b=document.createElement("div");b.className="bubble";const sz=3+Math.random()*8;b.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;animation-duration:${5+Math.random()*6}s;animation-delay:${Math.random()*9}s;`;c.appendChild(b);}
+  // Date label
+  document.getElementById("date-lbl").textContent=new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long"});
   const ei=document.getElementById("email-input");
   if(ei&&ST.email)ei.value=ST.email;
+  renderFeeding();
+  renderTaskCards();
+  renderSchedule();
+  renderAlerts();
 });
-
-renderFeeding();
-renderTaskCards();
-renderSchedule();
-renderAlerts();
 </script>
 </body>
 </html>
