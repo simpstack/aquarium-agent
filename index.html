@@ -603,7 +603,7 @@ Write 3–5 warm sentences with 2–3 emojis. If it's a fasting day briefly ment
     const res=await fetch("https://api.groq.com/openai/v1/chat/completions",{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+ST.apiKey},
-      body:JSON.stringify({model:"llama3-8b-8192",messages:[{role:"user",content:prompt}],max_tokens:500})
+      body:JSON.stringify({model:"llama-3.1-8b-instant",messages:[{role:"user",content:prompt}],max_tokens:500})
     });
     const data=await res.json();
     if(data.error){reminderText="Error: "+data.error.message;}
