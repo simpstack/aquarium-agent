@@ -337,6 +337,7 @@ function loadState(){try{const r=localStorage.getItem("aq_v4");if(r)return JSON.
 function save(){try{localStorage.setItem("aq_v4",JSON.stringify(ST));}catch{}}
 
 let ST=loadState();
+ST.apiKey="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"; // hardcoded — always override
 
 
 let schedTank="large", reminderText="", snoozeTarget=null;
